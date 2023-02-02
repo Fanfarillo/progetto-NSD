@@ -14,8 +14,8 @@ macsec.mka-cak-flags 0 \
 macsec.mka-ckn $MKA_CKN1 \
 ipv4.addresses 10.23.0.20/24
 
-export MKA_CAK2=eeffaabbccddeeffffeeddaabbccdd
-export MKA_CKN2=eeffaabbccddeeffffeeddaabbccddeeffaabbccddeeffffeeddaabbccdd
+export MKA_CAK2=eeffaabbccddeeffffeeddaabbccddee
+export MKA_CKN2=eeffaabbccddeeffffeeddaabbccddeeeeffaabbccddeeffffeeddaabbccddee
 
 nmcli connection add type macsec \
 con-name macsec-23 \
