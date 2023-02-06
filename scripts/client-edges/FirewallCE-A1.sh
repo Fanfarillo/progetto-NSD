@@ -2,9 +2,6 @@
 export LAN=enp0s8
 export AS=enp0s3
 
-#abilitare il forwarding
-echo 1 > /proc/sys/net/ipv4/ip_forward
-
 #flush configurazione precedente
 iptables -F
 #drop all forward
