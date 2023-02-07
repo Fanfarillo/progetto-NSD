@@ -180,7 +180,7 @@ Configurazione del firewall:
  ####CE-A2
  La connessione all'AS di CE-A2 è molto simili a quella di CE-A1 quindi non verrà presentata, può essere trovata sul file *[SetupCE-A2.sh](./scripts/client-edges/SetupCE-A2.sh "SetupCE-A2.sh")*  
  Configurazione del firewall:  
- *[FirewallA2.sh](./scripts/client-edges/FirewallA2.sh "FirewallA2.sh")*
+ *[FirewallCE-A2.sh](./scripts/client-edges/FirewallCE-A2.sh "FirewallCE-A2.sh")*
  * Flush della configurazione precedente:
      ```
     iptables -F
