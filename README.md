@@ -1,14 +1,14 @@
 # Progetto-NSD
 ### Progetto per il corso di Network and System Defence dell'Università di Roma Tor Vergata
 __Autori__
-* :man_technologist: Adrian Baba 
-* :woman_technologist: Sara Da Canal
-* :man_technologist: Matteo Fanfa
+* :man_technologist: Adrian Baba (matricola 0320578)
+* :woman_technologist: Sara Da Canal (matricola 0316044)
+* :man_technologist: Matteo Fanfa (matricola 0316179)
 
 
 Lo scopo di questo progetto è simulare la seguente rete: 
 ![Reference topology](./PartialTopology.png "Reference topology")
-Nella rete abbiamo due AS, con AS200 customer di AS100. L'AS100 connette i tre siti di vpnA. Il sito 1 è costituito da due Host e un Client Edge, che comunicano tra di loro tramite MacSec. Il Client Edge presenta un firewall.
+Nella rete abbiamo due AS, con AS200 customer di AS100. L'AS100 connette i tre siti di vpnA. Il sito 1 è costituito da due Host e un Client Edge, che comunicano tra di loro tramite MacSec. Il Client Edge presenta un firewall. Il sito 2 presenta un Client Edge e tre host con diversi antivirus.
 
 ## AS100
 ### Configurazione dei router
@@ -174,4 +174,31 @@ Configurazione del firewall:
     ```
  La configurazione MacSec è molto simile per CE-A1 e i due host, quindi verrà presentata solo quella del CE:
  **Aggiungere Configurazione quando MACSEC sarà finito**
+ 
+ ###LAN-A2
+ In questa sottorete abbiamo un Client Edge e tre host contenenti tre antivirus. Quando questa sottorete riceve dei file, gli antivirus devono attivarsi per analizzarli e fornire un report. Il CE deve anche fornire un firewall per evitare che i virus analizzati possano infettare altre componenti della rete.
+ ####CE-A2
+ La connessione all'AS di CE-A2 è molto simili a quella di CE-A1 quindi non verrà presentata, può essere trovata sul file *[SetupCE-A2.sh](./scripts/client-edges/SetupCE-A2.sh "SetupCE-A2.sh")*  
+ Configurazione del firewall:  
+ *[FirewallA2.sh](./scripts/client-edges/FirewallA2.sh "FirewallA2.sh")*
+ * Flush della configurazione precedente:
+     ```
+    iptables -F
+    ```
+ * Drop di tutto il traffico in ingresso e uscita dalla rete o dal router:
+     ```
+        iptables -P FORWARD DROP
+        iptables -P INPUT DROP
+        iptables -P OUTPUT DROP
+    ```
+ * Permettere il traffico bidirezionale tra AVs e central node situato in LAN-A3:
+     ```
+    iptables -A FORWARD -s 10.23.1.2 -d 10.123.0.0/16 -j ACCEPT
+    iptables -A FORWARD -s 10.123.0.0/16 -d 10.23.1.2 -j ACCEPT
+    ```
+ * Permettere il traffico di CE-A1 e CE-A3, che passa attraverso questo router dato che è un hub in vpnA:
+    ```
+    iptables -A FORWARD -s 10.23.1.0/24 -d 10.23.0.0/24 -j ACCEPT
+    iptables -A FORWARD -s 10.23.0.0/24 -d 10.23.1.0/24 -j ACCEPT
+    ```
  
