@@ -3,6 +3,8 @@
 export MKA_CAK=00112233445566778899aabbccddeeff
 export MKA_CKN=00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff
 
+nmcli connection del macsec-123
+
 nmcli connection add type macsec \
 con-name macsec-123 \
 ifname macsec0 \
