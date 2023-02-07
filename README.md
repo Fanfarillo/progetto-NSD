@@ -7,7 +7,7 @@ __Autori__
 
 
 Lo scopo di questo progetto è simulare la seguente rete: 
-![Reference topology](./PartialTopology.png "Reference topology")
+![Reference topology](./Topology.png "Reference topology")
 Nella rete abbiamo due AS, con AS200 customer di AS100. L'AS100 connette i tre siti di vpnA. Il sito 1 è costituito da due Host e un Client Edge, che comunicano tra di loro tramite MacSec. Il Client Edge presenta un firewall. Il sito 2 presenta un Client Edge e tre host con diversi antivirus.
 
 ## AS100
