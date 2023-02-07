@@ -1,21 +1,22 @@
 # Progetto-NSD
 ### Progetto per il corso di Network and System Defence dell'Università di Roma Tor Vergata
 __Autori__
-* Adrian Baba
-* Sara Da Canal
-* Matteo Fanfa
+* :man_technologist: Adrian Baba 
+* :woman_technologist: Sara Da Canal
+* :man_technologist: Matteo Fanfa
 
 
 Lo scopo di questo progetto è simulare la seguente rete: 
 ![Reference topology](./PartialTopology.png "Reference topology")
-Nella rete abbiamo due AS, con AS200 customer di AS100. L'AS100 connette i tre siti di vpnA. Il sito 1 è costituito da due Host e un Customer Edge, che comunicano tra di loro tramite MacSec. Il Customer Edge presenta un firewall.
+Nella rete abbiamo due AS, con AS200 customer di AS100. L'AS100 connette i tre siti di vpnA. Il sito 1 è costituito da due Host e un Client Edge, che comunicano tra di loro tramite MacSec. Il Client Edge presenta un firewall.
 
 ## AS100
 ### Configurazione dei router
 I router implementano BGP come protocollo per la comunicazione con il resto della rete, OSPF per la comunicazione interna, MPLS con LDP che fornisce la base per l'instradamento tra diversi siti della VPN.
 Abbiamo due tipi di router, LSR, nella parte centrale dell'AS, e Provider Edges. 
 #### LSR
-La configurazione dell'LSR è la seguente:
+La configurazione dell'LSR è la seguente:   
+*[SetupLSR.cfg](./scripts/routers/lsr/SetupLSR.cfg "SetupLSR.cfg")*
 * Interfaccia di loopback usata per identificare il router:
     ```
     interface Loopback0                     
@@ -46,13 +47,16 @@ La configurazione dell'LSR è la seguente:
     ip route 1.0.0.0 255.0.0.0 Null0
     ```
 #### PE
-I tre router PE hanno configurazioni molto simili tra loro, quindi ne verrà analizzata soltanto una (PE2):
+I tre router PE hanno configurazioni molto simili tra loro, quindi ne verrà analizzata soltanto una (PE2):  
+*[SetupPE1.cfg](./scripts/routers/provider-edges/SetupPE1.cfg "SetupPE1.cfg")*  
+*[SetupPE2.cfg](./scripts/routers/provider-edges/SetupPE1.cfg "SetupPE2.cfg")*  
+*[SetupPE3.cfg](./scripts/routers/provider-edges/SetupPE1.cfg "SetupPE3.cfg")*  
 * Interfaccia di loopback per identificare il router:
     ```
     interface Loopback0                     
     ip address 1.255.0.2 255.255.255.255
     ```
-* Setup della vpn con rd 100:0. La vpn ha una topologia con un hub e due spoke, l'hub ha route-target 100:2 e gli spoke route-target 100:1. PE2 è il nostro hub, mentre PE1 e PE3 sono spoke:
+* Setup della vpn con rd 100:0. La vpn ha una topologia con un hub e due spoke, il PE collegato all'hub ha route-target 100:2 e quelli collegati agli spoke route-target 100:1. PE2 è il nostro hub, mentre PE1 e PE3 sono spoke:
     ```
     ip vrf vpnA
     rd 100:0
@@ -66,7 +70,7 @@ I tre router PE hanno configurazioni molto simili tra loro, quindi ne verrà ana
     ip address 192.168.24.2 255.255.255.252
     no shutdown
     ```
-* Interfaccia verso il Customer Edge, con il forwarding verso la vpn:
+* Interfaccia verso il Client Edge, con il forwarding verso la vpn:
     ```
     interface GigabitEthernet2/0
     ip vrf forwarding vpnA
@@ -119,9 +123,10 @@ I tre router PE hanno configurazioni molto simili tra loro, quindi ne verrà ana
     ```
     
 ### LAN-A1
-In questa sottorete abbiamo due host con configurazioni molto simili che devono stabilire una connessione MacSec e un Customer Edge con tre funzioni: deve connettersi all'AS, partecipare a una connessione MacSec con gli altri host della sua sottorete e fornire un firewall tra la LAN-A1 e l'esterno. 
+In questa sottorete abbiamo due host con configurazioni molto simili che devono stabilire una connessione MacSec e un Client Edge con tre funzioni: deve connettersi all'AS, partecipare a una connessione MacSec con gli altri host della sua sottorete e fornire un firewall tra la LAN-A1 e l'esterno. 
 #### CE-A1
-Configurazione per connettersi all'AS:
+Configurazione per connettersi all'AS:  
+*[SetupCE-A1.sh](./scripts/client-edges/SetupCE-A1.sh "SetupCE-A1.sh")*
 * Abilitazione del forwarding:
     ```
     sysctl -w net.ipv4.ip_forward=1
@@ -136,3 +141,37 @@ Configurazione per connettersi all'AS:
     ```
     ip route add default via 100.1.12.1
     ```
+Configurazione del firewall:  
+*[MacsecCE-A1.sh](./scripts/client-edges/MacsecCE-A1.sh "MacsecCE-A1.sh")*
+* Flush di eventuali configurazioni precedenti:
+    ```
+    iptables -F
+    ```
+* Drop di tutti i pacchetti verso il router o dall'esterno verso la sottorete:
+    ```
+    iptables -P FORWARD DROP
+    iptables -P INPUT DROP
+    ```
+* Accept di tutti i pacchetti dal router o dalla sottorete verso l'esterno:
+    ```
+    iptables -P OUTPUT ACCEPT
+    iptables -A FORWARD -i $LAN -o $AS -j ACCEPT
+    ```
+* Permette il traffico ICMP o ssh in ingresso al router se proveniente dalla LAN:
+    ```
+    iptables -A INPUT -i $LAN -p tcp --dport 22 -j ACCEPT
+    iptables -A INPUT -i $LAN -p icmp -j ACCEPT
+    ```
+* Permette il traffico in ingresso al router se proveniente da connessioni già stabilite:
+    ```
+    iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
+    ```
+* Permette il traffico http dall'esterno verso la LAN con port forwarding:
+    ```
+    iptables -A FORWARD -i $AS -o $LAN -p tcp --dport 80 -j ACCEPT
+    iptables -t nat -A PREROUTING -i $AS -j DNAT --to-destination 10.23.0.10 
+    iptables -t nat -A PREROUTING -i $AS -j DNAT --to-destination 10.23.0.20
+    ```
+ La configurazione MacSec è molto simile per CE-A1 e i due host, quindi verrà presentata solo quella del CE:
+ **Aggiungere Configurazione quando MACSEC sarà finito**
+ 
