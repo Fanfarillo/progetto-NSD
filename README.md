@@ -252,5 +252,45 @@ La configurazione del server è divisa in tre:
         echo 1 > /proc/sys/net/ipv4/ip_forward
      ```
 * Configurazione della vpn (*[server.ovpn](./scripts/conf/server.ovpn "server.ovpn")*):
-    
-* Configurazione del nat (*[NattingOpenvpn-server.sh](./scripts/hosts/lan-B/NattingOpenvpn-server.sh "NattingOpenvpn-server.sh")*
+    1. Creare l'interfaccia tunnel per la vpn, stabilire la porta e il protocollo per la comunicazione:
+     ```
+        port 1194
+        proto udp
+        dev tun
+     ```
+    2. Indicare i file di chiavi e certificati:
+    ```
+        ca ca.crt
+        cert nsd-server.crt
+        key nsd-server.key
+        dh dh.pem
+     ```
+    3. Associare una rete all'interfaccia tunnel del server:
+    ```
+        server 192.168.100.0 255.255.255.0
+     ```
+    4. Impostare le route da inviare al client:
+    ```
+     push "route 192.168.100.0 255.255.255.0"
+     push "route 192.168.17.0 255.255.255.0"
+     ```
+    5. Impostare la frequenza del keepalive:
+    ```
+        keepalive 10 120
+     ```    
+    6. Impostare il tipo di cifratura:
+    ```
+        cipher AES-256-CBC
+     ```        
+* Configurazione del nat (*[NattingOpenvpn-server.sh](./scripts/hosts/lan-B/NattingOpenvpn-server.sh "NattingOpenvpn-server.sh")*):
+    1. Impostare HostB2 come la source dei messaggi provenienti dalla vpn e indirizzati a HostB1:
+    ```
+        iptables -t nat -A POSTROUTING -s 192.168.100.0/24 -o eth1 -j SNAT --to 192.168.16.2
+     ```      
+    2. Indirizzare nella vpn i messaggi provenienti da HostB1 per HostB2:
+     ```
+        iptables -t nat -A PREROUTING -d 192.168.16.2 -i eth1 -j DNAT --to 192.168.100.6
+     ```  
+     
+#### Client
+* Configurazione delle interfacce, non presentata dato che le interfacce degli host sono molto semplici (*[SetupHostB2.sh](./scripts/hosts/lan-B/SetupHostB2.sh "SetupHostB2.sh")*)
