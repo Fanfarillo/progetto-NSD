@@ -3,7 +3,7 @@
 __Autori__
 * :man_technologist: Adrian Baba (matricola 0320578)
 * :woman_technologist: Sara Da Canal (matricola 0316044)
-* :man_technologist: Matteo Fanfa (matricola 0316179)
+* :man_technologist: Matteo Fanfarillo (matricola 0316179)
 
 
 Lo scopo di questo progetto è simulare la seguente rete: 
@@ -201,4 +201,56 @@ Configurazione del firewall:
     iptables -A FORWARD -s 10.23.1.0/24 -d 10.23.0.0/24 -j ACCEPT
     iptables -A FORWARD -s 10.23.0.0/24 -d 10.23.1.0/24 -j ACCEPT
     ```
- 
+ ## AS200
+ Questo AS è un customer di AS100, ed è costituito da un solo router, RB1, che comunica tramite eBGP con PE1. Collegata a questo AS troviamo la LAN-B, una Virtual LAN creata con OpenVPN. Il server OpenVPN è collegato a RB1, e fa da gateway verso la LAN dietro di lui, mentre il client OpenVPN è collegato a PE3.  
+ ### RB1
+ La configurazione di RB1 è la seguente:
+ *[SetupRB1.cfg](./scripts/routers/rb1/SetupRB1.cfg "SetupRB1.cfg")*
+ * Interfaccia di loopback:
+     ```
+     interface Loopback0
+    ip address 2.255.0.1 255.255.255.255
+     ```
+ * Configurare le due interfacce di rete del router, una verso PE1 e una verso il server OpenVPN:
+      ```
+        interface GigabitEthernet1/0
+        ip address 100.0.11.2 255.255.255.252
+        no shutdown
+       
+        interface GigabitEthernet2/0
+        ip address 2.0.0.1 255.255.255.252
+        no shutdown
+     ```
+ * Configurare eBGP con PE1 come unico neighbor:
+      ```
+        router bgp 200
+        network 2.0.0.0
+        neighbor 100.0.11.1 remote-as 100
+     ```
+ * Inserire un'ip route per scartare i pacchetti provenienti dall'AS stesso:
+     ```
+    ip route 2.0.0.0 255.0.0.0 Null0
+     ```
+### Configurazione di OpenVPN
+Abbiamo tre componenti: il server openVPN, HostB1 (direttamente connesso al server ma non un client della VPN) e HostB2 (client della VPN):
+#### Server
+La configurazione del server è divisa in tre:
+* Configurazione delle interfacce (*[SetupOpenvpn-server.sh](./scripts/hosts/lan-B/SetupOpenvpn-server.sh "SetupOpenvpn-server.sh")*):
+  1. Impostare le due interfacce:  
+     ```
+       ip link set eth0 up
+        ip link set eth1 up
+        ip addr add 2.0.0.2/30 dev eth0
+        ip addr add 192.168.17.1/24 dev eth1
+     ```
+  2. Aggiungere route di default verso RB1:
+         ```
+        ip route add default via 2.0.0.1
+     ```
+  3. Abilitare il forwarding:
+      ```
+        echo 1 > /proc/sys/net/ipv4/ip_forward
+     ```
+* Configurazione della vpn (*[server.ovpn](./scripts/conf/server.ovpn "server.ovpn")*):
+    
+* Configurazione del nat (*[NattingOpenvpn-server.sh](./scripts/hosts/lan-B/NattingOpenvpn-server.sh "NattingOpenvpn-server.sh")*
