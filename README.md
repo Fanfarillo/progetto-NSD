@@ -56,7 +56,7 @@ I tre router PE hanno configurazioni molto simili tra loro, quindi ne verrà ana
     interface Loopback0                     
     ip address 1.255.0.2 255.255.255.255
     ```
-* Setup della vpn con rd 100:0. La vpn ha una topologia con un hub e due spoke, il PE collegato all'hub ha route-target 100:2 e quelli collegati agli spoke route-target 100:1. PE2 è il nostro hub, mentre PE1 e PE3 sono spoke:
+* Setup della vpn con rd 100:0. La vpn ha una topologia con un hub e due spoke, il PE collegato all'hub ha route-target 100:2 e quelli collegati agli spoke route-target 100:1. PE2 è collegato al nostro hub, mentre PE1 e PE3 sono collegati agli spoke:
     ```
     ip vrf vpnA
     rd 100:0
@@ -108,7 +108,7 @@ I tre router PE hanno configurazioni molto simili tra loro, quindi ne verrà ana
     exit-address-family
     ```
 * Configurazione della sottorete appartenente alla vpn:
-      ```
+   ```
     address-family ipv4 vrf vpnA
     network 10.23.0.0 mask 255.255.255.0
     exit-address-family
@@ -175,9 +175,9 @@ Configurazione del firewall:
  La configurazione MacSec è molto simile per CE-A1 e i due host, quindi verrà presentata solo quella del CE:
  **Aggiungere Configurazione quando MACSEC sarà finito**
  
- ###LAN-A2
+ ### LAN-A2
  In questa sottorete abbiamo un Client Edge e tre host contenenti tre antivirus. Quando questa sottorete riceve dei file, gli antivirus devono attivarsi per analizzarli e fornire un report. Il CE deve anche fornire un firewall per evitare che i virus analizzati possano infettare altre componenti della rete.
- ####CE-A2
+ #### CE-A2
  La connessione all'AS di CE-A2 è molto simili a quella di CE-A1 quindi non verrà presentata, può essere trovata sul file *[SetupCE-A2.sh](./scripts/client-edges/SetupCE-A2.sh "SetupCE-A2.sh")*  
  Configurazione del firewall:  
  *[FirewallCE-A2.sh](./scripts/client-edges/FirewallCE-A2.sh "FirewallCE-A2.sh")*
@@ -202,7 +202,7 @@ Configurazione del firewall:
     iptables -A FORWARD -s 10.23.0.0/24 -d 10.23.1.0/24 -j ACCEPT
     ```
  ## AS200
- Questo AS è un customer di AS100, ed è costituito da un solo router, RB1, che comunica tramite eBGP con PE1. Collegata a questo AS troviamo la LAN-B, una Virtual LAN creata con OpenVPN. Il server OpenVPN è collegato a RB1, e fa da gateway verso la LAN dietro di lui, mentre il client OpenVPN è collegato a PE3.  
+ Questo AS è un customer di AS100, ed è costituito da un solo router, RB1, che comunica tramite eBGP con PE1. Collegata a questo AS troviamo la LAN-B, una Virtual LAN creata con OpenVPN. Il server OpenVPN è collegato a RB1, e fa da gateway della LAN dietro di lui, mentre il client OpenVPN è collegato a PE3.  
  ### RB1
  La configurazione di RB1 è la seguente:
  *[SetupRB1.cfg](./scripts/routers/rb1/SetupRB1.cfg "SetupRB1.cfg")*
@@ -232,7 +232,7 @@ Configurazione del firewall:
     ip route 2.0.0.0 255.0.0.0 Null0
      ```
 ### Configurazione di OpenVPN
-Abbiamo tre componenti: il server openVPN, HostB1 (direttamente connesso al server ma non un client della VPN) e HostB2 (client della VPN):
+Abbiamo tre componenti: il server openVPN, HostB1 (direttamente connesso al server ma non un client della VPN) e HostB2 (client della VPN). Prima di iniziare la configurazione abbiamo usato le funzioni di easy-rsa per generare le chiavi e i certificati necessari al funzionamento della vpn.
 #### Server
 La configurazione del server è divisa in tre:
 * Configurazione delle interfacce (*[SetupOpenvpn-server.sh](./scripts/hosts/lan-B/SetupOpenvpn-server.sh "SetupOpenvpn-server.sh")*):
@@ -244,11 +244,11 @@ La configurazione del server è divisa in tre:
         ip addr add 192.168.17.1/24 dev eth1
      ```
   2. Aggiungere route di default verso RB1:
-         ```
+     ```
         ip route add default via 2.0.0.1
      ```
   3. Abilitare il forwarding:
-      ```
+     ```
         echo 1 > /proc/sys/net/ipv4/ip_forward
      ```
 * Configurazione della vpn (*[server.ovpn](./scripts/conf/server.ovpn "server.ovpn")*):
@@ -269,11 +269,20 @@ La configurazione del server è divisa in tre:
     ```
         server 192.168.100.0 255.255.255.0
      ```
-    4. Impostare le route da inviare al client:
+    4. Impostare la route da inviare al client:
     ```
-     push "route 192.168.100.0 255.255.255.0"
      push "route 192.168.17.0 255.255.255.0"
      ```
+    6. Impostare al server la route verso il client. Questo funziona insieme all'impostazione di una iroute, che si trova sul file client01 all'interno della directory ccd:
+     ```
+        route 192.168.16.0 255.255.255.0
+        
+        iroute 192.168.16.0 255.255.255.0
+     ```    
+    7. Impostare la directory ccd come directory per la configurazione del client:
+     ```
+        client-config-dir ccd
+     ```    
     5. Impostare la frequenza del keepalive:
     ```
         keepalive 10 120
@@ -283,14 +292,35 @@ La configurazione del server è divisa in tre:
         cipher AES-256-CBC
      ```        
 * Configurazione del nat (*[NattingOpenvpn-server.sh](./scripts/hosts/lan-B/NattingOpenvpn-server.sh "NattingOpenvpn-server.sh")*):
-    1. Impostare HostB2 come la source dei messaggi provenienti dalla vpn e indirizzati a HostB1:
+    1. Mascherare gli indirizzi della vpn nei messaggi inviati verso HostB1:
     ```
-        iptables -t nat -A POSTROUTING -s 192.168.100.0/24 -o eth1 -j SNAT --to 192.168.16.2
+        iptables -t nat -A POSTROUTING -s 192.168.100.0/24 -o eth1 -j MASQUERADE
      ```      
-    2. Indirizzare nella vpn i messaggi provenienti da HostB1 per HostB2:
-     ```
-        iptables -t nat -A PREROUTING -d 192.168.16.2 -i eth1 -j DNAT --to 192.168.100.6
-     ```  
+
      
 #### Client
 * Configurazione delle interfacce, non presentata dato che le interfacce degli host sono molto semplici (*[SetupHostB2.sh](./scripts/hosts/lan-B/SetupHostB2.sh "SetupHostB2.sh")*)
+* Configurazione della vpn (*[client01.ovpn](./scripts/conf/client01.ovpn "client01.ovpn")*):
+    1. Impostare il protocollo e l'interfaccia da usare:
+    ```
+        dev tun
+        proto udp
+     ```        
+    2. Dichiarare l'ip e la porta del server e far si che siano possibili infiniti tentativi di connessione:
+     ```
+        remote 2.0.0.2 1194
+        resolv-retry infinite
+     ```       
+    3. Impostare i file di chiavi e certificati e verificare il certificato del server:
+    ```
+        ca ca.crt
+        cert client01.crt
+        key client01.key
+        remote-cert-tls server
+     ```        
+    4. Impostare il tipo di cifratura:
+    ```
+        cipher AES-256-CBC
+     ```  
+#### HostB1
+Per il funzionamento è necessario soltanto configurare le interfacce, la configurazione può essere trovata nel file [SetupHostB1.sh](./scripts/hosts/lan-B/SetupHostB1.sh "SetupHostB1.sh" 
