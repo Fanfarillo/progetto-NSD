@@ -323,4 +323,4 @@ La configurazione del server è divisa in tre:
         cipher AES-256-CBC
      ```  
 #### HostB1
-Per il funzionamento è necessario soltanto configurare le interfacce, la configurazione può essere trovata nel file [SetupHostB1.sh](./scripts/hosts/lan-B/SetupHostB1.sh "SetupHostB1.sh" 
+Per il funzionamento è necessario soltanto configurare le interfacce, la configurazione può essere trovata nel file [SetupHostB1.sh](./scripts/hosts/lan-B/SetupHostB1.sh "SetupHostB1.sh") 
