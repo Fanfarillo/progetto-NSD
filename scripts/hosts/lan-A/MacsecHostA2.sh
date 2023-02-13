@@ -8,12 +8,15 @@ nmcli connection del macsec-123
 nmcli connection add type macsec \
 con-name macsec-123 \
 ifname macsec0 \
-connection.autoconnect no \
+connection.autoconnect yes \
 macsec.parent enp0s3 \
 macsec.mode psk \
 macsec.mka-cak $MKA_CAK \
 macsec.mka-cak-flags 0 \
 macsec.mka-ckn $MKA_CKN \
+ipv4.method manual \
 ipv4.addresses 10.23.0.20/24
 
 nmcli connection up macsec-123
+
+ip route add default via 10.23.0.1
