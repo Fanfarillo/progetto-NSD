@@ -1,5 +1,5 @@
 #!/bin/bash
-export LAN=enp0s8
+export LAN=macsec0
 export AS=enp0s3
 
 #flush configurazione precedente
