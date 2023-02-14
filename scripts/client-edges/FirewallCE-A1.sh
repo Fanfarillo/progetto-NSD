@@ -26,10 +26,13 @@ iptables -A INPUT -i $LAN -p icmp -j ACCEPT
 
 #accetta entrata al router da connessioni stabilite
 iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
-iptables -A FORWARD -m state ESTABLISHED -j ACCEPT
+iptables -A FORWARD -m state --state ESTABLISHED -j ACCEPT
 
 #accetta l'ingresso di pacchetti http verso la lan
+iptables -A INPUT -i $AS -p tcp --dport 80 -j ACCEPT
+iptables -A INPUT -i $AS -p tcp --dport 8080 -j ACCEPT
 iptables -A FORWARD -i $AS -o $LAN -p tcp --dport 80 -j ACCEPT
+iptables -A FORWARD -i $AS -o $LAN -p tcp --dport 8080 -j ACCEPT
 
 #DNAT per connessione dall'esterno con HTTP
 iptables -t nat -A PREROUTING -i $AS -p tcp --dport 80 -j DNAT --to-destination 10.23.0.10 
