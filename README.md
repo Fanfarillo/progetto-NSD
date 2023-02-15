@@ -8,7 +8,7 @@ __Autori__
 
 Lo scopo di questo progetto è simulare la seguente rete: 
 ![Reference topology](./Topology.png "Reference topology")
-Nella rete abbiamo due AS, con AS200 customer di AS100. L'AS100 connette i tre siti di vpnA. Il sito 1 è costituito da due Host e un Client Edge, che comunicano tra di loro tramite MacSec. Il Client Edge presenta un firewall. Il sito 2 presenta un Client Edge e tre host con diversi antivirus.
+Nella rete abbiamo due AS, con AS200 customer di AS100. L'AS100 connette i tre siti di vpnA. Il sito 1 è costituito da due Host e un Client Edge, che comunicano tra di loro tramite MacSec. Il Client Edge presenta un firewall. Il sito 2 presenta un Client Edge e tre host con diversi antivirus. Anche qui il Client Edge fa da firewall. Nel sito 3 troviamo nuovamente un Client Edge e un central node accessibile dall'esterno. Il central node accetta file, li invia al sito 2 per l'analisi e mostra i risultati ottenuti. Per quanto riguarda AS200, si occupa di connettere il lato server di LanB, mentre il client è connesso ad AS100. Questi due siti sono connessi tra di loro tramite openvpn.
 
 ## AS100
 ### Configurazione dei router
@@ -142,10 +142,11 @@ Configurazione per connettersi all'AS:
     ip route add default via 100.1.12.1
     ```
 Configurazione del firewall:  
-*[MacsecCE-A1.sh](./scripts/client-edges/MacsecCE-A1.sh "MacsecCE-A1.sh")*
+*[FirewallCE-A1.sh](./scripts/client-edges/FirewallCE-A1.sh "FirewallCE-A1.sh")*
 * Flush di eventuali configurazioni precedenti:
     ```
     iptables -F
+    iptables -F -t nat
     ```
 * Drop di tutti i pacchetti verso il router o dall'esterno verso la sottorete:
     ```
@@ -157,23 +158,76 @@ Configurazione del firewall:
     iptables -P OUTPUT ACCEPT
     iptables -A FORWARD -i $LAN -o $AS -j ACCEPT
     ```
+* Natting degli indirizzi per i pacchetti in uscita dalla sottorete:
+    ```
+    iptables -t nat -A POSTROUTING -o $AS -j MASQUERADE
+    ```
 * Permette il traffico ICMP o ssh in ingresso al router se proveniente dalla LAN:
     ```
     iptables -A INPUT -i $LAN -p tcp --dport 22 -j ACCEPT
     iptables -A INPUT -i $LAN -p icmp -j ACCEPT
     ```
-* Permette il traffico in ingresso al router se proveniente da connessioni già stabilite:
+* Permette il traffico in ingresso al router o alla LAN se proveniente da connessioni già stabilite:
     ```
     iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
+    iptables -A FORWARD -m state --state ESTABLISHED -j ACCEPT
     ```
 * Permette il traffico http dall'esterno verso la LAN con port forwarding:
     ```
-    iptables -A FORWARD -i $AS -o $LAN -p tcp --dport 80 -j ACCEPT
-    iptables -t nat -A PREROUTING -i $AS -j DNAT --to-destination 10.23.0.10 
-    iptables -t nat -A PREROUTING -i $AS -j DNAT --to-destination 10.23.0.20
+        iptables -A INPUT -i $AS -p tcp --dport 80 -j ACCEPT
+        iptables -A INPUT -i $AS -p tcp --dport 8080 -j ACCEPT
+        iptables -A FORWARD -i $AS -o $LAN -p tcp --dport 80 -j ACCEPT
+        iptables -A FORWARD -i $AS -o $LAN -p tcp --dport 8080 -j ACCEPT
+        iptables -t nat -A PREROUTING -i $AS -p tcp --dport 80 -j DNAT --to-destination 10.23.0.10 
+        iptables -t nat -A PREROUTING -i $AS -p tcp --dport 8080 -j DNAT --to-destination 10.23.0.20
     ```
- La configurazione MacSec è molto simile per CE-A1 e i due host, quindi verrà presentata solo quella del CE:
- **Aggiungere Configurazione quando MACSEC sarà finito**
+ La configurazione MacSec è molto simile per CE-A1 e i due host, quindi verrà presentata solo quella del CE:  
+*[MacsecCE-A1.sh](./scripts/client-edges/MacsecCE-A1.sh "MacsecCE-A1.sh")*   
+*[MacsecHostA1.sh](./scripts/hosts/lan-A/MacsecHostA1.sh "MacsecHostA1.sh")*   
+*[MacsecHostA2.sh](./scripts/hosts/lan-B/MacsecHostA2.sh "MacsecHostA2.sh")*   
+* Inizializzare le due chiavi usate:
+     ```
+        export MKA_CAK=00112233445566778899aabbccddeeff
+        export MKA_CKN=00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff
+    ```
+* Eliminare di eventuali connessioni precedenti ancora attive:
+     ```
+     nmcli connection del macsec-123
+    ```
+* Aggiunta di una nuova connessione macsec:
+     ```
+        nmcli connection add type macsec \
+    ```
+* Assegnare i nomi alla connessione e all'interfaccia:
+     ```
+    con-name macsec-123 \
+    ifname macsec0 \
+    ```
+* Abilitare la connessione automatica se le risorse sono disponibili:
+     ```
+    connection.autoconnect yes \
+    ```
+* Assegnare l'interfaccia fisica su cui la connessione macsec si appoggia:
+     ```
+        macsec.parent enp0s8 \
+    ```
+* Creare una connessione in modo preshared key e impostare le chiavi:
+     ```
+        macsec.mode psk \
+        macsec.mka-cak $MKA_CAK \
+        macsec.mka-cak-flags 0 \
+        macsec.mka-ckn $MKA_CKN \
+    ```
+* Passare all'assegnazione manuale degli ip e assegnare un ip all'interfaccia:
+     ```
+        ipv4.method manual \
+        ipv4.addresses 10.23.0.1/24
+    ```
+* Attivare la connessione:
+     ```
+        nmcli connection up macsec-123
+    ```
+
  
  ### LAN-A2
  In questa sottorete abbiamo un Client Edge e tre host contenenti tre antivirus. Quando questa sottorete riceve dei file, gli antivirus devono attivarsi per analizzarli e fornire un report. Il CE deve anche fornire un firewall per evitare che i virus analizzati possano infettare altre componenti della rete.
@@ -184,6 +238,7 @@ Configurazione del firewall:
  * Flush della configurazione precedente:
      ```
     iptables -F
+    iptables -F -t nat
     ```
  * Drop di tutto il traffico in ingresso e uscita dalla rete o dal router:
      ```
