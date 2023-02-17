@@ -256,6 +256,48 @@ Configurazione del firewall:
     iptables -A FORWARD -s 10.23.1.0/24 -d 10.23.0.0/24 -j ACCEPT
     iptables -A FORWARD -s 10.23.0.0/24 -d 10.23.1.0/24 -j ACCEPT
     ```
+ #### AV
+I tre AV sono container docker su cui sono stati installati tre antivirus diversi. Oltre l'installazione, hanno il setup delle interfacce e gli script da eseguire per restare in ascolto in attesa di file da analizzare, analizzarli e inviare indietro i report.
+##### Installazione degli antivirus:
+Gli script per l'installazione sono i seguenti: [InstallAV1.sh](./scripts/hosts/lan-A/AV-installation/InstallAV1.sh "InstallAV1.sh"), [InstallAV2.sh](./scripts/hosts/lan-A/AV-installation/InstallAV2.sh "InstallAV2.sh") e [InstallAV3.sh](./scripts/hosts/lan-A/AV-installation/InstallAV3.sh "InstallAV3.sh").
+##### Configurazione delle interfacce:
+La configurazione delle interfacce di rete non ha particolarità, quindi non verrà presentata. Può essere trovata nei seguenti file:  
+*[SetupAV1.sh](./scripts/hosts/lan-A/SetupAV1.sh "SetupAV1.sh")*   
+*[SetupAV2.sh](./scripts/hosts/lan-A/SetupAV2.sh "SetupAV2.sh")*   
+*[SetupAV3.sh](./scripts/hosts/lan-A/SetupAV3.sh "SetupAV3.sh")*   
+##### Ricezione e analisi del binario:
+Tranne che per l'effettivo comando di analisi, specifico per i diversi antivirus, anche questi file sono simili tra i tre AV. Sarà presentato il file di AV1.
+*[ReceiveAndAnalyzeAV1.sh](./scripts/hosts/lan-A/ReceiveAndAnalyzeAV1.sh "ReceiveAndAnalizeAV1.sh")*  
+*[ReceiveAndAnalyzeAV2.sh](./scripts/hosts/lan-A/ReceiveAndAnalyzeAV2.sh "ReceiveAndAnalizeAV2.sh")*   
+*[ReceiveAndAnalyzeAV3.sh](./scripts/hosts/lan-A/ReceiveAndAnalyzeAV3.sh "ReceiveAndAnalizeAV3.sh")* 
+
+* Aprire la connessione netcat per la ricezione del binario, redirezionando l'output su un file, e attendere che l'invio sia terminato:
+```
+    nc -lnvp 50000 > binary &
+    wait
+```
+* Rendere eseguibile il file ottenuto e provare ad eseguirlo:
+```
+    chmod +x binary
+    ./binary &
+```
+* Attendere per consentire la fine dell'esecuzione:
+```
+    sleep 10
+```
+* Eseguire la scansione, i tre diversi comandi riportati sono usati da ciascuno degli antivirus, e creare i file di log:
+```
+    clamscan -i --exclude-dir="^/sys" -r / > log1.log
+
+    rkhunter -c --rwo --sk --summary > log2.log
+
+    chkrootkit -q > log3.log
+```
+* Inviare i file di log al central node:
+```
+    nc -q 10 10.23.1.2 50001 < log1.log
+```
+
  ## AS200
  Questo AS è un customer di AS100, ed è costituito da un solo router, RB1, che comunica tramite eBGP con PE1. Collegata a questo AS troviamo la LAN-B, una Virtual LAN creata con OpenVPN. Il server OpenVPN è collegato a RB1, e fa da gateway della LAN dietro di lui, mentre il client OpenVPN è collegato a PE3.  
  ### RB1
