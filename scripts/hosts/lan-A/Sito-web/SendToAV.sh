@@ -1,8 +1,8 @@
 #!/bin/bash
 
-nc -q 10 10.123.0.10 3000 < binary &
-nc -q 10 10.123.0.20 3000 < binary &
-nc -q 10 10.123.0.30 3000 < binary &
+nc -q 10 10.123.0.10 50000 < binary &
+nc -q 10 10.123.0.20 50000< binary &
+nc -q 10 10.123.0.30 50000 < binary &
 
 mkdir log_files
 cd log_files
