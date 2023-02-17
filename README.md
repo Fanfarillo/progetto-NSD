@@ -317,7 +317,7 @@ La configurazione delle interfacce di rete non ha particolarità, quindi non ver
 *[SetupAV2.sh](./scripts/hosts/lan-A/SetupAV2.sh "SetupAV2.sh")*   
 *[SetupAV3.sh](./scripts/hosts/lan-A/SetupAV3.sh "SetupAV3.sh")*   
 ##### Ricezione e analisi del binario:
-Tranne che per l'effettivo comando di analisi, specifico per i diversi antivirus, anche questi file sono simili tra i tre AV. Sarà presentato il file di AV1.
+Tranne che per l'effettivo comando di analisi, specifico per i diversi antivirus, anche questi file sono simili tra i tre AV. Sarà presentato il file di AV1.   
 *[ReceiveAndAnalyzeAV1.sh](./scripts/hosts/lan-A/ReceiveAndAnalyzeAV1.sh "ReceiveAndAnalizeAV1.sh")*  
 *[ReceiveAndAnalyzeAV2.sh](./scripts/hosts/lan-A/ReceiveAndAnalyzeAV2.sh "ReceiveAndAnalizeAV2.sh")*   
 *[ReceiveAndAnalyzeAV3.sh](./scripts/hosts/lan-A/ReceiveAndAnalyzeAV3.sh "ReceiveAndAnalizeAV3.sh")* 
