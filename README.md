@@ -360,7 +360,7 @@ La connessione all'AS di CE-A3 è molto simili a quella di CE-A1 quindi non verr
  * Per farla accedere ad internet: VirtualBox -> selezionare la macchina -> impostazioni -> rete -> scegliere la scheda di rete da usare -> abilitarla e impostarla a NAT
  * Per renderla accessibile tramite l'ip dell'host sulla porta 8080: Avanzate -> Inoltro delle porte -> add -> protocollo TCP / porta host 8080 / porta guest 80
 Setup delle interfacce e listening per le comunicazioni dagli AV:
-*[SetupCentralNode.sh](./scripts/hosts/lan-A/SetupCentralNode.sh "NattingCE-A3.sh")* 
+*[SetupCentralNode.sh](./scripts/hosts/lan-A/SetupCentralNode.sh "SetupCentralNode.sh")* 
 * Setup dell'interfaccia:
 ```
 ip link set enp0s3 up
@@ -371,34 +371,7 @@ ip addr add 10.23.1.2/24 dev enp0s3
 ip route add 10.23.0.0/24 via 10.23.1.1
 ip route add 10.123.0.0/16 via 10.23.1.1
 ```
-* Ciclo per attendere la connessione dall'host, in questo modo dopo aver ricevuto il file la connessione viene riaperta:
-```
-while true; do
-...
-done
-```
-* Apertura delle connessioni con redirezione dell'output e attesa dell'arrivo di un file:
-```
-nc -lnvp 50001 > /var/www/html/log_file/log1.log &
-pid1=$!
-nc -lnvp 50002 > /var/www/html/log_file/log2.log &
-pid2=$!
-nc -lnvp 50003 > /var/www/html/log_file/log3.log &
-pid3=$!
 
-wait pid1
-wait pid2
-wait pid3
-```
-* Creazione del file di log:
-```
-echo "REPORT CLAMSCAN\n\n" > /var/www/html/log_file/report
-cat /var/www/html/log_file/log1.log >> /var/www/html/log_file/report
-echo "\n\nREPORT RKHUNTER\n\n" >> /var/www/html/log_file/report
-cat /var/www/html/log_file/log2.log >> /var/www/html/log_file/report
-echo "\n\nREPORT CHKROOTKIT\n\n" >> /var/www/html/log_file/report
-cat /var/www/html/log_file/log3.log >> report 
-```
 ##### Sito web:
 Per rendere disponibile l'interfaccia web abbiamo usato Apache. Dopo aver installato il necessario nella macchina virtuale, tutto il materiale relativo al sito è situato nella directory /var/www/html.
 * Pagina principale:    
@@ -409,10 +382,10 @@ Questa pagina serve a mostrare un form che permette di scegliere un file locale 
 La funzione di upload copia il file sulla VM, poi chiama lo script per l'invio del file verso gli AV e carica la pagina che mostra il report.
 * Script per l'invio di file:    
 *[SendToAV.sh](./scripts/hosts/lan-A/Sito-web/SendToAV.sh "SendToAV.sh")*   
-Questo script si occupa di inviare il file ricevuto in upload ai tre AV.
+Questo script si occupa di inviare il file ricevuto in upload ai tre AV, dopo aver aperto le porte per la ricezione delle risposte. Quando riceve i file di log, li elabora generando un unico report.
 * Pagina del report:    
 *[report.html](./scripts/hosts/lan-A/Sito-web/report.html "report.html")*  
-Questa pagina mostra il report ottenuto dagli AV
+Questa pagina mostra il report ottenuto dagli AV.
 
  ## AS200
  Questo AS è un customer di AS100, ed è costituito da un solo router, RB1, che comunica tramite eBGP con PE1. Collegata a questo AS troviamo la LAN-B, una Virtual LAN creata con OpenVPN. Il server OpenVPN è collegato a RB1, e fa da gateway della LAN dietro di lui, mentre il client OpenVPN è collegato a PE3.
