@@ -5,6 +5,29 @@ __Autori__
 * :woman_technologist: Sara Da Canal (matricola 0316044)
 * :man_technologist: Matteo Fanfarillo (matricola 0316179)
 
+## Table of contents
+
+1. [AS100](#as100)
+    1. [Configurazione dei router](#configurazione-dei-router)
+        1. [LSR](#lsr)
+        2. [PE](#pe)
+
+2. [LAN-A1](#lan-a1)
+    1. [CE-A1](#ce-a1)
+3. [LAN-A2](#lan-a2)
+   1. [CE-A2](#ce-a2)
+   2. [AV](#av)
+4. [LAN-A3](#lan-a3) 
+    1. [CE-A3](#ce-a3)
+    2. [Central-node](#central-node)
+        1. [Sito web](#sito-web)
+5. [AS200](#as200)
+    1. [RB1](#rb1)
+    2. [Configurazione di OpenVPN](#configurazione-di-openvpn)
+        1. [Server](#server)
+        2. [Client](#client)
+        3. [HostB1](#hostb1)
+
 
 Lo scopo di questo progetto è simulare la seguente rete: 
 ![Reference topology](./Topology.png "Reference topology")
@@ -56,7 +79,7 @@ I tre router PE hanno configurazioni molto simili tra loro, quindi ne verrà ana
     interface Loopback0                     
     ip address 1.255.0.2 255.255.255.255
     ```
-* Setup della vpn con rd 100:0. La vpn ha una topologia con un hub e due spoke, il PE collegato all'hub ha route-target 100:2 e quelli collegati agli spoke route-target 100:1. PE2 è collegato al nostro hub, mentre PE1 e PE3 sono collegati agli spoke:
+* Setup della vpn con rd 100:0. La vpn ha una topologia con un hub e due spoke, il PE collegato all'hub ha route-target 100:1 e quelli collegati agli spoke route-target 100:2. PE3 è collegato al nostro hub, mentre PE1 e PE2 sono collegati agli spoke:
     ```
     ip vrf vpnA
     rd 100:0
@@ -121,6 +144,29 @@ I tre router PE hanno configurazioni molto simili tra loro, quindi ne verrà ana
     ```
     ip route 1.0.0.0 255.0.0.0 Null0
     ```
+ PE3 è l'unico provider edge che presenta delle particolarità, in particolare: 
+ * Nell'interfaccia che si interfaccia verso la LanB e il client OpenVPN è stato attivato il natting:
+ ```
+    interface GigabitEthernet3/0
+    ip address 192.168.16.1 255.255.255.0
+    ip nat inside
+    no shutdown
+```
+* Ci siamo assicurati che i collegamenti delle altre interfacce non subissero effetti dal nat (il seguente comando è stato aggiunto a tutte le altre interfacce):
+```
+ip nat outside
+```
+* Abbiamo permesso l'ingresso nell'interfaccia con il nat solo dei pacchetti provenienti dalla vpn:
+```
+    access-list 101 permit ip 192.168.16.0 0.0.0.255 any
+    ip nat inside source list 101 interface Loopback0 overload
+```
+In più, dato che PE3 è il router collegato all'hub, deve mandare tutti i pacchetti della vpn verso il proprio CE:
+```
+ip route vrf vpnA 10.0.0.0 255.0.0.0 100.2.13.2
+
+```
+
     
 ### LAN-A1
 In questa sottorete abbiamo due host con configurazioni molto simili che devono stabilire una connessione MacSec e un Client Edge con tre funzioni: deve connettersi all'AS, partecipare a una connessione MacSec con gli altri host della sua sottorete e fornire un firewall tra la LAN-A1 e l'esterno. 
@@ -227,7 +273,6 @@ Configurazione del firewall:
      ```
         nmcli connection up macsec-123
     ```
-
  
  ### LAN-A2
  In questa sottorete abbiamo un Client Edge e tre host contenenti tre antivirus. Quando questa sottorete riceve dei file, gli antivirus devono attivarsi per analizzarli e fornire un report. Il CE deve anche fornire un firewall per evitare che i virus analizzati possano infettare altre componenti della rete.
@@ -248,9 +293,15 @@ Configurazione del firewall:
     ```
  * Permettere il traffico bidirezionale tra AVs e central node situato in LAN-A3:
      ```
-    iptables -A FORWARD -s 10.23.1.2 -d 10.123.0.0/16 -j ACCEPT
-    iptables -A FORWARD -s 10.123.0.0/16 -d 10.23.1.2 -j ACCEPT
+    iptables -A FORWARD -s 10.23.1.0/24 -d 10.123.0.0/16 -j ACCEPT
+    iptables -A FORWARD -s 10.123.0.0/16 -d 10.23.1.0/24 -j ACCEPT
     ```
+ * Permettere tutto il traffico ICMP:
+ ```
+ iptables -A INPUT -p icmp -j ACCEPT
+ iptables -A FORWARD -p icmp -j ACCEPT
+ iptables -A OUTPUT -p icmp -j ACCEPT
+ ```
  * Permettere il traffico di CE-A1 e CE-A3, che passa attraverso questo router dato che è un hub in vpnA:
     ```
     iptables -A FORWARD -s 10.23.1.0/24 -d 10.23.0.0/24 -j ACCEPT
@@ -298,8 +349,73 @@ Tranne che per l'effettivo comando di analisi, specifico per i diversi antivirus
     nc -q 10 10.23.1.2 50001 < log1.log
 ```
 
+## LAN-A3
+Questa LAN è costituita dal CE e dal central node. Il central node è accessibile dalla rete esterna, ed espone un sito web tramite il quale è possibile caricare file. Ogni volta che riceve un file, questo viene inviato verso gli AV. Il central-node aspetta una risposta e la mostra all'utente connesso.
+
+### CE-A3
+La connessione all'AS di CE-A3 è molto simili a quella di CE-A1 quindi non verrà presentata, può essere trovata sul file *[SetupCE-A3.sh](./scripts/client-edges/SetupCE-A3.sh "SetupCE-A3.sh")*  
+ 
+ ### Central-node
+ Abilitare la connessione della macchina verso l'esterno:
+ * Per farla accedere ad internet: VirtualBox -> selezionare la macchina -> impostazioni -> rete -> scegliere la scheda di rete da usare -> abilitarla e impostarla a NAT
+ * Per renderla accessibile tramite l'ip dell'host sulla porta 8080: Avanzate -> Inoltro delle porte -> add -> protocollo TCP / porta host 8080 / porta guest 80
+Setup delle interfacce e listening per le comunicazioni dagli AV:
+*[SetupCentralNode.sh](./scripts/hosts/lan-A/SetupCentralNode.sh "NattingCE-A3.sh")* 
+* Setup dell'interfaccia:
+```
+ip link set enp0s3 up
+ip addr add 10.23.1.2/24 dev enp0s3
+```
+* Aggiunta delle route verso il resto della lan (non possiamo mettere default verso la lan come per gli altri host dato che il default è verso la rete esterna):
+```
+ip route add 10.23.0.0/24 via 10.23.1.1
+ip route add 10.123.0.0/16 via 10.23.1.1
+```
+* Ciclo per attendere la connessione dall'host, in questo modo dopo aver ricevuto il file la connessione viene riaperta:
+```
+while true; do
+...
+done
+```
+* Apertura delle connessioni con redirezione dell'output e attesa dell'arrivo di un file:
+```
+nc -lnvp 50001 > /var/www/html/log_file/log1.log &
+pid1=$!
+nc -lnvp 50002 > /var/www/html/log_file/log2.log &
+pid2=$!
+nc -lnvp 50003 > /var/www/html/log_file/log3.log &
+pid3=$!
+
+wait pid1
+wait pid2
+wait pid3
+```
+* Creazione del file di log:
+```
+echo "REPORT CLAMSCAN\n\n" > /var/www/html/log_file/report
+cat /var/www/html/log_file/log1.log >> /var/www/html/log_file/report
+echo "\n\nREPORT RKHUNTER\n\n" >> /var/www/html/log_file/report
+cat /var/www/html/log_file/log2.log >> /var/www/html/log_file/report
+echo "\n\nREPORT CHKROOTKIT\n\n" >> /var/www/html/log_file/report
+cat /var/www/html/log_file/log3.log >> report 
+```
+##### Sito web:
+Per rendere disponibile l'interfaccia web abbiamo usato Apache. Dopo aver installato il necessario nella macchina virtuale, tutto il materiale relativo al sito è situato nella directory /var/www/html.
+* Pagina principale:    
+ *[index.html](./scripts/hosts/lan-A/Sito-web/index.html "index.html")*   
+Questa pagina serve a mostrare un form che permette di scegliere un file locale e fare l'upload di quel file per avviarne l'analisi. 
+* Funzione di upload:    
+*[upload.php](./scripts/hosts/lan-A/Sito-web/upload.php "upload.php")*   
+La funzione di upload copia il file sulla VM, poi chiama lo script per l'invio del file verso gli AV e carica la pagina che mostra il report.
+* Script per l'invio di file:    
+*[SendToAV.sh](./scripts/hosts/lan-A/Sito-web/SendToAV.sh "SendToAV.sh")*   
+Questo script si occupa di inviare il file ricevuto in upload ai tre AV.
+* Pagina del report:    
+*[report.html](./scripts/hosts/lan-A/Sito-web/report.html "report.html")*  
+Questa pagina mostra il report ottenuto dagli AV
+
  ## AS200
- Questo AS è un customer di AS100, ed è costituito da un solo router, RB1, che comunica tramite eBGP con PE1. Collegata a questo AS troviamo la LAN-B, una Virtual LAN creata con OpenVPN. Il server OpenVPN è collegato a RB1, e fa da gateway della LAN dietro di lui, mentre il client OpenVPN è collegato a PE3.  
+ Questo AS è un customer di AS100, ed è costituito da un solo router, RB1, che comunica tramite eBGP con PE1. Collegata a questo AS troviamo la LAN-B, una Virtual LAN creata con OpenVPN. Il server OpenVPN è collegato a RB1, e fa da gateway della LAN dietro di lui, mentre il client OpenVPN è collegato a PE3.
  ### RB1
  La configurazione di RB1 è la seguente:
  *[SetupRB1.cfg](./scripts/routers/rb1/SetupRB1.cfg "SetupRB1.cfg")*
