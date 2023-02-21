@@ -359,7 +359,9 @@ La connessione all'AS di CE-A3 è molto simili a quella di CE-A1 quindi non verr
  Abilitare la connessione della macchina verso l'esterno:
  * Per farla accedere ad internet: VirtualBox -> selezionare la macchina -> impostazioni -> rete -> scegliere la scheda di rete da usare -> abilitarla e impostarla a NAT
  * Per renderla accessibile tramite l'ip dell'host sulla porta 8080: Avanzate -> Inoltro delle porte -> add -> protocollo TCP / porta host 8080 / porta guest 80   
-Setup delle interfacce e listening per le comunicazioni dagli AV:
+
+
+Setup delle interfacce e listening per le comunicazioni dagli AV:    
 *[SetupCentralNode.sh](./scripts/hosts/lan-A/SetupCentralNode.sh "SetupCentralNode.sh")* 
 * Setup dell'interfaccia:
 ```
