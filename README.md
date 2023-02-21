@@ -1,5 +1,5 @@
 # Progetto-NSD
-### Progetto per il corso di Network and System Defence dell'Università di Roma Tor Vergata
+## Progetto per il corso di Network and System Defence dell'Università di Roma Tor Vergata
 __Autori__
 * :man_technologist: Adrian Baba (matricola 0320578)
 * :woman_technologist: Sara Da Canal (matricola 0316044)
@@ -29,8 +29,11 @@ __Autori__
         3. [HostB1](#hostb1)
 
 
-Lo scopo di questo progetto è simulare la seguente rete: 
+## Introduzione
+Lo scopo del progetto è simulare la seguente rete: 
+
 ![Reference topology](./Topology.png "Reference topology")
+
 Nella rete abbiamo due AS, con AS200 customer di AS100. L'AS100 connette i tre siti di vpnA. Il sito 1 è costituito da due Host e un Client Edge, che comunicano tra di loro tramite MacSec. Il Client Edge presenta un firewall. Il sito 2 presenta un Client Edge e tre host con diversi antivirus. Anche qui il Client Edge fa da firewall. Nel sito 3 troviamo nuovamente un Client Edge e un central node accessibile dall'esterno. Il central node accetta file, li invia al sito 2 per l'analisi e mostra i risultati ottenuti. Per quanto riguarda AS200, si occupa di connettere il lato server di LanB, mentre il client è connesso ad AS100. Questi due siti sono connessi tra di loro tramite openvpn.
 
 ## AS100
@@ -131,7 +134,7 @@ I tre router PE hanno configurazioni molto simili tra loro, quindi ne verrà ana
     exit-address-family
     ```
 * Configurazione della sottorete appartenente alla vpn:
-   ```
+    ```
     address-family ipv4 vrf vpnA
     network 10.23.0.0 mask 255.255.255.0
     exit-address-family
@@ -219,58 +222,58 @@ Configurazione del firewall:
     ```
 * Permettere il traffico http dall'esterno verso la LAN con port forwarding:
     ```
-        iptables -A INPUT -i $AS -p tcp --dport 80 -j ACCEPT
-        iptables -A INPUT -i $AS -p tcp --dport 8080 -j ACCEPT
-        iptables -A FORWARD -i $AS -o $LAN -p tcp --dport 80 -j ACCEPT
-        iptables -A FORWARD -i $AS -o $LAN -p tcp --dport 8080 -j ACCEPT
-        iptables -t nat -A PREROUTING -i $AS -p tcp --dport 80 -j DNAT --to-destination 10.23.0.10 
-        iptables -t nat -A PREROUTING -i $AS -p tcp --dport 8080 -j DNAT --to-destination 10.23.0.20
+    iptables -A INPUT -i $AS -p tcp --dport 80 -j ACCEPT
+    iptables -A INPUT -i $AS -p tcp --dport 8080 -j ACCEPT
+    iptables -A FORWARD -i $AS -o $LAN -p tcp --dport 80 -j ACCEPT
+    iptables -A FORWARD -i $AS -o $LAN -p tcp --dport 8080 -j ACCEPT
+    iptables -t nat -A PREROUTING -i $AS -p tcp --dport 80 -j DNAT --to-destination 10.23.0.10 
+    iptables -t nat -A PREROUTING -i $AS -p tcp --dport 8080 -j DNAT --to-destination 10.23.0.20
     ```
  La configurazione MacSec è molto simile per CE-A1 e i due host, quindi verrà presentata solo quella del CE:  
 *[MacsecCE-A1.sh](./scripts/client-edges/MacsecCE-A1.sh "MacsecCE-A1.sh")*   
 *[MacsecHostA1.sh](./scripts/hosts/lan-A/MacsecHostA1.sh "MacsecHostA1.sh")*   
 *[MacsecHostA2.sh](./scripts/hosts/lan-B/MacsecHostA2.sh "MacsecHostA2.sh")*   
 * Inizializzare le due chiavi usate:
-     ```
-        export MKA_CAK=00112233445566778899aabbccddeeff
-        export MKA_CKN=00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff
+    ```
+    export MKA_CAK=00112233445566778899aabbccddeeff
+    export MKA_CKN=00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff
     ```
 * Eliminare di eventuali connessioni precedenti ancora attive:
-     ```
-     nmcli connection del macsec-123
+    ```
+    nmcli connection del macsec-123
     ```
 * Aggiunta di una nuova connessione macsec:
-     ```
-        nmcli connection add type macsec \
+    ```
+    nmcli connection add type macsec \
     ```
 * Assegnare i nomi alla connessione e all'interfaccia:
-     ```
+    ```
     con-name macsec-123 \
     ifname macsec0 \
     ```
 * Abilitare la connessione automatica se le risorse sono disponibili:
-     ```
+    ```
     connection.autoconnect yes \
     ```
 * Assegnare l'interfaccia fisica su cui la connessione macsec si appoggia:
-     ```
-        macsec.parent enp0s8 \
+    ```
+    macsec.parent enp0s8 \
     ```
 * Creare una connessione con la preshared key e impostare le chiavi:
-     ```
-        macsec.mode psk \
-        macsec.mka-cak $MKA_CAK \
-        macsec.mka-cak-flags 0 \
-        macsec.mka-ckn $MKA_CKN \
+    ```
+    macsec.mode psk \
+    macsec.mka-cak $MKA_CAK \
+    macsec.mka-cak-flags 0 \
+    macsec.mka-ckn $MKA_CKN \
     ```
 * Passare all'assegnazione manuale degli ip e assegnare un ip all'interfaccia:
-     ```
-        ipv4.method manual \
-        ipv4.addresses 10.23.0.1/24
+    ```
+    ipv4.method manual \
+    ipv4.addresses 10.23.0.1/24
     ```
 * Attivare la connessione:
-     ```
-        nmcli connection up macsec-123
+    ```
+    nmcli connection up macsec-123
     ```
  
  ### LAN-A2
@@ -280,18 +283,18 @@ Configurazione del firewall:
  Configurazione del firewall:  
  *[FirewallCE-A2.sh](./scripts/client-edges/FirewallCE-A2.sh "FirewallCE-A2.sh")*
  * Flush della configurazione precedente:
-     ```
+    ```
     iptables -F
     iptables -F -t nat
     ```
  * Drop di tutto il traffico in ingresso e uscita dalla rete o dal router:
-     ```
-        iptables -P FORWARD DROP
-        iptables -P INPUT DROP
-        iptables -P OUTPUT DROP
+    ```
+    iptables -P FORWARD DROP
+    iptables -P INPUT DROP
+    iptables -P OUTPUT DROP
     ```
  * Permettere il traffico bidirezionale tra AVs e central node situato in LAN-A3:
-     ```
+    ```
     iptables -A FORWARD -s 10.23.1.0/24 -d 10.123.0.0/16 -j ACCEPT
     iptables -A FORWARD -s 10.123.0.0/16 -d 10.23.1.0/24 -j ACCEPT
     ```
@@ -325,31 +328,31 @@ Tranne che per l'effettivo comando di analisi, specifico per i diversi antivirus
 *[ReceiveAndAnalyzeAV3.sh](./scripts/hosts/lan-A/ReceiveAndAnalyzeAV3.sh "ReceiveAndAnalizeAV3.sh")* 
 
 * Aprire la connessione netcat per la ricezione del binario, redirezionando l'output su un file, e attendere che l'invio sia terminato:
-```
+    ```
     nc -lnvp 50000 > binary &
     wait
-```
+    ```
 * Rendere eseguibile il file ottenuto e provare ad eseguirlo:
-```
+    ```
     chmod +x binary
     ./binary &
-```
+    ```
 * Attendere per consentire la fine dell'esecuzione:
-```
+    ```
     sleep 10
-```
+    ```
 * Eseguire la scansione e creare i file di log. Ognuno dei tre comandi riportati di seguito viene usato da un antivirus diverso:
-```
+    ```
     clamscan -i --exclude-dir="^/sys" -r / > log1.log
 
     rkhunter -c --rwo --sk --summary > log2.log
 
     chkrootkit -q > log3.log
-```
+    ```
 * Inviare i file di log al central node:
-```
+    ```
     nc -q 10 10.23.1.2 50001 < log1.log
-```
+    ```
 
 ### LAN-A3
 Questa LAN è costituita dal CE-A3 e dal central node. Il central node è accessibile dalla rete esterna ed espone un sito web tramite il quale è possibile caricare file. Ogni volta che riceve un file, lo invia verso gli AV. Dopodiché aspetta una risposta e la mostra all'utente connesso.
@@ -357,7 +360,7 @@ Questa LAN è costituita dal CE-A3 e dal central node. Il central node è access
 #### CE-A3
 La connessione all'AS di CE-A3 è molto simile a quella di CE-A1, per cui non verrà presentata; può essere trovata sul file *[SetupCE-A3.sh](./scripts/client-edges/SetupCE-A3.sh "SetupCE-A3.sh")*.
  
- #### Central-node
+#### Central-node
  Abilitare la connessione della macchina verso l'esterno:
  * Per farla accedere a Internet: VirtualBox -> selezionare la macchina -> impostazioni -> rete -> scegliere la scheda di rete da usare -> abilitarla e impostarla a NAT
  * Per renderla accessibile tramite l'ip dell'host sulla porta 8080: Avanzate -> Inoltro delle porte -> add -> protocollo TCP / porta host 8080 / porta guest 80   
@@ -366,15 +369,15 @@ La connessione all'AS di CE-A3 è molto simile a quella di CE-A1, per cui non ve
 Setup delle interfacce e listening per le comunicazioni dagli AV:    
 *[SetupCentralNode.sh](./scripts/hosts/lan-A/SetupCentralNode.sh "SetupCentralNode.sh")* 
 * Setup dell'interfaccia:
-```
-ip link set enp0s3 up
-ip addr add 10.23.1.2/24 dev enp0s3
-```
+    ```
+    ip link set enp0s3 up
+    ip addr add 10.23.1.2/24 dev enp0s3
+    ```
 * Aggiunta delle route verso il resto della lan (non possiamo mettere default verso la lan come per gli altri host dato che il default è verso la rete esterna):
-```
-ip route add 10.23.0.0/24 via 10.23.1.1
-ip route add 10.123.0.0/16 via 10.23.1.1
-```
+    ```
+    ip route add 10.23.0.0/24 via 10.23.1.1
+    ip route add 10.123.0.0/16 via 10.23.1.1
+    ```
 
 ##### Sito web:
 Per rendere disponibile l'interfaccia web abbiamo usato Apache. Dopo aver installato il necessario nella macchina virtuale (tramite il comando `apt install php`), tutto il materiale relativo al sito è situato nella directory /var/www/html.
@@ -397,95 +400,95 @@ Questa pagina mostra il report ottenuto dagli AV.
  La configurazione di RB1 è la seguente:
  *[SetupRB1.cfg](./scripts/routers/rb1/SetupRB1.cfg "SetupRB1.cfg")*
  * Interfaccia di loopback:
-     ```
-     interface Loopback0
+    ```
+    interface Loopback0
     ip address 2.255.0.1 255.255.255.255
-     ```
+    ```
  * Configurare le due interfacce di rete del router, una verso PE1 e una verso il server OpenVPN:
-      ```
-        interface GigabitEthernet1/0
-        ip address 100.0.11.2 255.255.255.252
-        no shutdown
+    ```
+    interface GigabitEthernet1/0
+    ip address 100.0.11.2 255.255.255.252
+    no shutdown
        
-        interface GigabitEthernet2/0
-        ip address 2.0.0.1 255.255.255.252
-        no shutdown
-     ```
+    interface GigabitEthernet2/0
+    ip address 2.0.0.1 255.255.255.252
+    no shutdown
+    ```
  * Configurare eBGP con PE1 come unico neighbor:
-      ```
-        router bgp 200
-        network 2.0.0.0
-        neighbor 100.0.11.1 remote-as 100
-     ```
+    ```
+    router bgp 200
+    network 2.0.0.0
+    neighbor 100.0.11.1 remote-as 100
+    ```
  * Inserire un'ip route per scartare i pacchetti provenienti dall'AS stesso:
-     ```
+    ```
     ip route 2.0.0.0 255.0.0.0 Null0
-     ```
+    ```
 ### Configurazione di OpenVPN
 Abbiamo tre componenti: il server openVPN, HostB1 (che è direttamente connesso al server ma non è un client della VPN) e HostB2 (client della VPN). Prima di iniziare la configurazione abbiamo usato le funzioni di easy-rsa per generare le chiavi e i certificati necessari al funzionamento della vpn.
 #### Server
 La configurazione del server è divisa in tre file:
 * Configurazione delle interfacce (*[SetupOpenvpn-server.sh](./scripts/hosts/lan-B/SetupOpenvpn-server.sh "SetupOpenvpn-server.sh")*):
   1. Impostare le due interfacce:  
-     ```
-        ip link set eth0 up
-        ip link set eth1 up
-        ip addr add 2.0.0.2/30 dev eth0
-        ip addr add 192.168.17.1/24 dev eth1
-     ```
+    ```
+    ip link set eth0 up
+    ip link set eth1 up
+    ip addr add 2.0.0.2/30 dev eth0
+    ip addr add 192.168.17.1/24 dev eth1
+    ```
   2. Aggiungere route di default verso RB1:
-     ```
-        ip route add default via 2.0.0.1
-     ```
+    ```
+    ip route add default via 2.0.0.1
+    ```
   3. Abilitare il forwarding:
-     ```
-        echo 1 > /proc/sys/net/ipv4/ip_forward
-     ```
+    ```
+    echo 1 > /proc/sys/net/ipv4/ip_forward
+    ```
 * Configurazione della vpn (*[server.ovpn](./scripts/conf/server.ovpn "server.ovpn")*):
     1. Creare l'interfaccia tunnel per la vpn, stabilire la porta e il protocollo per la comunicazione:
-     ```
-        port 1194
-        proto udp
-        dev tun
-     ```
+    ```
+    port 1194
+    proto udp
+    dev tun
+    ```
     2. Indicare i file di chiavi e certificati:
     ```
-        ca ca.crt
-        cert nsd-server.crt
-        key nsd-server.key
-        dh dh.pem
-     ```
+    ca ca.crt
+    cert nsd-server.crt
+    key nsd-server.key
+    dh dh.pem
+    ```
     3. Associare una rete all'interfaccia tunnel del server:
     ```
-        server 192.168.100.0 255.255.255.0
-     ```
+    server 192.168.100.0 255.255.255.0
+    ```
     4. Impostare la route da inviare al client:
-     ```
-        push "route 192.168.17.0 255.255.255.0"
-     ```
+    ```
+    push "route 192.168.17.0 255.255.255.0"
+    ```
     5. Impostare al server la route verso il client. Questo funziona insieme all'impostazione di una iroute, che si trova sul file client01 all'interno della directory ccd:
-     ```
-        route 192.168.16.0 255.255.255.0
+    ```
+    route 192.168.16.0 255.255.255.0
         
-        iroute 192.168.16.0 255.255.255.0
-     ```    
+    iroute 192.168.16.0 255.255.255.0
+    ```    
     6. Impostare la directory ccd come directory per la configurazione del client:
-     ```
-        client-config-dir ccd
-     ```    
+    ```
+    client-config-dir ccd
+    ```    
     7. Impostare la frequenza del keepalive:
     ```
-        keepalive 10 120
-     ```    
+    keepalive 10 120
+    ```    
     8. Impostare il tipo di cifratura:
     ```
-        cipher AES-256-CBC
-     ```        
+    cipher AES-256-CBC
+    ```        
 * Configurazione del nat (*[NattingOpenvpn-server.sh](./scripts/hosts/lan-B/NattingOpenvpn-server.sh "NattingOpenvpn-server.sh")*):
     1. Mascherare gli indirizzi della vpn nei messaggi inviati verso HostB1:
     ```
-        iptables -t nat -A POSTROUTING -s 192.168.100.0/24 -o eth1 -j MASQUERADE
-     ```      
+    iptables -t nat -A POSTROUTING -s 192.168.100.0/24 -o eth1 -j MASQUERADE
+    ```      
 
      
 #### Client
@@ -493,27 +496,27 @@ La configurazione del server è divisa in tre file:
 * Configurazione della vpn (*[client01.ovpn](./scripts/conf/client01.ovpn "client01.ovpn")*):
     1. Impostare il protocollo e l'interfaccia da usare:
     ```
-        dev tun
-        proto udp
-     ```        
+    dev tun
+    proto udp
+    ```        
     2. Dichiarare l'ip e la porta del server e far sì che siano possibili infiniti tentativi di connessione:
-     ```
-        remote 2.0.0.2 1194
-        resolv-retry infinite
-     ```       
+    ```
+    remote 2.0.0.2 1194
+    resolv-retry infinite
+    ```       
     3. Impostare i file di chiavi e certificati e verificare il certificato del server:
     ```
-        ca ca.crt
-        cert client01.crt
-        key client01.key
-        remote-cert-tls server
-     ```        
+    ca ca.crt
+    cert client01.crt
+    key client01.key
+    remote-cert-tls server
+    ```        
     4. Impostare il tipo di cifratura:
     ```
-        cipher AES-256-CBC
-     ```  
+    cipher AES-256-CBC
+    ```  
 #### HostB1
 Per il funzionamento è necessario soltanto configurare le interfacce; la configurazione può essere trovata nel file [SetupHostB1.sh](./scripts/hosts/lan-B/SetupHostB1.sh "SetupHostB1.sh"). 
 
 ## Snapshot
-Per andare a fare il restore degli snapshot degli AV, ci siamo basati sulla documentazione di gns3, in cui viene dichiarato che i container non hanno persistenza a meno che questa non sia esplicitamente stabilita. Abbiamo quindi pensato che fare lo stop e start dei container potesse essere un buon modo per implementare gli snapshot. In realtà, ci siamo resi conto che GNS3 ricrea un nuovo container se il progetto viene chiuso e poi riaperto, ma non se il container viene spento e riacceso. Si potrebbe teoricamente andare a distruggere il container, ricrearlo a partire dal template, che corrisponde allo snapshot, e riavviarlo. Non abbiamo potuto testare questa strategia dato che, anche se sicuramente esiste, non è presente un'API di rimozione sulla documentazione di GNS3. Una strategia del genere richiede anche di processare automaticamente i json usati come risposta alle API, dato che le API di start, lik e stop di un nodo si basano sul node-id, che cambia ogni volta che il nodo viene rimosso e ricreato, quindi non può essere impostato staticamente. Va anche fatto notare che tutte queste operazioni è possibile farle fare direttamente al central-node nel momento in cui riceve i report: GNS3 può essere manovrato tramite richieste http GET o POST al server che lo ospita, nel nostro caso localhost sulla porta 3080. Il central node è collegato alla macchina host per accedere a Internet e, con l'IP fornito da VirtualBox per l'instradamento dei messaggi tra host e guest, possiamo inviare le richieste http al server GNS3 a partire dal central node.
+Per andare a fare il restore degli snapshot degli AV, ci siamo basati sulla documentazione di GNS3, in cui viene dichiarato che i container non hanno persistenza a meno che questa non sia esplicitamente stabilita. Abbiamo quindi pensato che fare lo stop e start dei container potesse essere un buon modo per implementare gli snapshot. In realtà, ci siamo resi conto che GNS3 ricrea un nuovo container se il progetto viene chiuso e poi riaperto, ma non se il container viene spento e riacceso. Si potrebbe teoricamente andare a distruggere il container, ricrearlo a partire dal template, che corrisponde allo snapshot, e riavviarlo. Non abbiamo potuto testare questa strategia dato che, anche se sicuramente esiste, non è presente un'API di rimozione sulla documentazione di GNS3. Una strategia del genere richiede anche di processare automaticamente i json usati come risposta alle API, dato che le API di start, lik e stop di un nodo si basano sul node-id, che cambia ogni volta che il nodo viene rimosso e ricreato, quindi non può essere impostato staticamente. Va anche fatto notare che tutte queste operazioni è possibile farle fare direttamente al central-node nel momento in cui riceve i report: GNS3 può essere manovrato tramite richieste http GET o POST al server che lo ospita, nel nostro caso localhost sulla porta 3080. Il central node è collegato alla macchina host per accedere a Internet e, con l'IP fornito da VirtualBox per l'instradamento dei messaggi tra host e guest, possiamo inviare le richieste http al server GNS3 a partire dal central node.
