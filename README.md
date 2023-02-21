@@ -307,9 +307,12 @@ Configurazione del firewall:
     iptables -A FORWARD -s 10.23.0.0/24 -d 10.23.1.0/24 -j ACCEPT
     ```
  #### AV
-I tre AV sono container docker su cui sono stati installati tre antivirus diversi. Oltre l'installazione, hanno il setup delle interfacce e gli script da eseguire per restare in ascolto in attesa di file da analizzare, analizzarli e inviare indietro i report.
+I tre AV sono container docker su cui sono stati installati tre antivirus diversi. Oltre all'installazione, hanno il setup delle interfacce e gli script da eseguire per restare in ascolto in attesa di ricevere file, analizzare tali file e inviare delle risposte contenenti i report delle analisi.
 ##### Installazione degli antivirus:
-Gli script per l'installazione sono i seguenti: [InstallAV1.sh](./scripts/hosts/lan-A/AV-installation/InstallAV1.sh "InstallAV1.sh"), [InstallAV2.sh](./scripts/hosts/lan-A/AV-installation/InstallAV2.sh "InstallAV2.sh") e [InstallAV3.sh](./scripts/hosts/lan-A/AV-installation/InstallAV3.sh "InstallAV3.sh").
+Gli script per l'installazione sono i seguenti:  
+*[InstallAV1.sh](./scripts/hosts/lan-A/AV-installation/InstallAV1.sh "InstallAV1.sh")*  
+*[InstallAV2.sh](./scripts/hosts/lan-A/AV-installation/InstallAV2.sh "InstallAV2.sh")*  
+*[InstallAV3.sh](./scripts/hosts/lan-A/AV-installation/InstallAV3.sh "InstallAV3.sh")*
 ##### Configurazione delle interfacce:
 La configurazione delle interfacce di rete non ha particolarità, quindi non verrà presentata. Può essere trovata nei seguenti file:  
 *[SetupAV1.sh](./scripts/hosts/lan-A/SetupAV1.sh "SetupAV1.sh")*   
@@ -335,7 +338,7 @@ Tranne che per l'effettivo comando di analisi, specifico per i diversi antivirus
 ```
     sleep 10
 ```
-* Eseguire la scansione, i tre diversi comandi riportati sono usati da ciascuno degli antivirus, e creare i file di log:
+* Eseguire la scansione e creare i file di log. Ognuno dei tre comandi riportati di seguito viene usato da un antivirus diverso:
 ```
     clamscan -i --exclude-dir="^/sys" -r / > log1.log
 
@@ -349,14 +352,14 @@ Tranne che per l'effettivo comando di analisi, specifico per i diversi antivirus
 ```
 
 ### LAN-A3
-Questa LAN è costituita dal CE e dal central node. Il central node è accessibile dalla rete esterna, ed espone un sito web tramite il quale è possibile caricare file. Ogni volta che riceve un file, questo viene inviato verso gli AV. Il central-node aspetta una risposta e la mostra all'utente connesso.
+Questa LAN è costituita dal CE-A3 e dal central node. Il central node è accessibile dalla rete esterna ed espone un sito web tramite il quale è possibile caricare file. Ogni volta che riceve un file, lo invia verso gli AV. Dopodiché aspetta una risposta e la mostra all'utente connesso.
 
 #### CE-A3
-La connessione all'AS di CE-A3 è molto simili a quella di CE-A1 quindi non verrà presentata, può essere trovata sul file *[SetupCE-A3.sh](./scripts/client-edges/SetupCE-A3.sh "SetupCE-A3.sh")*  
+La connessione all'AS di CE-A3 è molto simile a quella di CE-A1, per cui non verrà presentata; può essere trovata sul file *[SetupCE-A3.sh](./scripts/client-edges/SetupCE-A3.sh "SetupCE-A3.sh")*.
  
  #### Central-node
  Abilitare la connessione della macchina verso l'esterno:
- * Per farla accedere ad internet: VirtualBox -> selezionare la macchina -> impostazioni -> rete -> scegliere la scheda di rete da usare -> abilitarla e impostarla a NAT
+ * Per farla accedere a Internet: VirtualBox -> selezionare la macchina -> impostazioni -> rete -> scegliere la scheda di rete da usare -> abilitarla e impostarla a NAT
  * Per renderla accessibile tramite l'ip dell'host sulla porta 8080: Avanzate -> Inoltro delle porte -> add -> protocollo TCP / porta host 8080 / porta guest 80   
 
 
@@ -374,22 +377,22 @@ ip route add 10.123.0.0/16 via 10.23.1.1
 ```
 
 ##### Sito web:
-Per rendere disponibile l'interfaccia web abbiamo usato Apache. Dopo aver installato il necessario nella macchina virtuale, tutto il materiale relativo al sito è situato nella directory /var/www/html.
+Per rendere disponibile l'interfaccia web abbiamo usato Apache. Dopo aver installato il necessario nella macchina virtuale (tramite il comando `apt install php`), tutto il materiale relativo al sito è situato nella directory /var/www/html.
 * Pagina principale:    
  *[index.html](./scripts/hosts/lan-A/Sito-web/index.html "index.html")*   
-Questa pagina serve a mostrare un form che permette di scegliere un file locale e fare l'upload di quel file per avviarne l'analisi. 
+Questa pagina serve a mostrare un form che permette di scegliere e fare l'upload di un file locale per avviarne l'analisi. 
 * Funzione di upload:    
 *[upload.php](./scripts/hosts/lan-A/Sito-web/upload.php "upload.php")*   
-La funzione di upload copia il file sulla VM, poi chiama lo script per l'invio del file verso gli AV e carica la pagina che mostra il report.
+La funzione di upload copia il file sulla VM, chiama lo script SendToAV.sh per l'invio del file verso gli AV e carica la pagina che mostra il report.
 * Script per l'invio di file:    
 *[SendToAV.sh](./scripts/hosts/lan-A/Sito-web/SendToAV.sh "SendToAV.sh")*   
-Questo script si occupa di inviare il file ricevuto in upload ai tre AV, dopo aver aperto le porte per la ricezione delle risposte. Quando riceve i file di log, li elabora generando un unico report.
+Questo script si occupa di inviare il file ricevuto in upload ai tre AV dopo aver aperto le porte per la ricezione delle risposte. Quando riceve i file di log, li elabora generando un unico report.
 * Pagina del report:    
 *[report.html](./scripts/hosts/lan-A/Sito-web/report.html "report.html")*  
 Questa pagina mostra il report ottenuto dagli AV.
 
  ## AS200
- Questo AS è un customer di AS100, ed è costituito da un solo router, RB1, che comunica tramite eBGP con PE1. Collegata a questo AS troviamo la LAN-B, una Virtual LAN creata con OpenVPN. Il server OpenVPN è collegato a RB1, e fa da gateway della LAN dietro di lui, mentre il client OpenVPN è collegato a PE3.
+ Questo AS è un customer di AS100 ed è costituito da un solo router, RB1, che comunica tramite eBGP con PE1. Collegata a questo AS troviamo la LAN-B, una Virtual LAN creata con OpenVPN. Il server OpenVPN è collegato a RB1 e fa da gateway della LAN dietro di lui, mentre il client OpenVPN è collegato a PE3.
  ### RB1
  La configurazione di RB1 è la seguente:
  *[SetupRB1.cfg](./scripts/routers/rb1/SetupRB1.cfg "SetupRB1.cfg")*
@@ -419,13 +422,13 @@ Questa pagina mostra il report ottenuto dagli AV.
     ip route 2.0.0.0 255.0.0.0 Null0
      ```
 ### Configurazione di OpenVPN
-Abbiamo tre componenti: il server openVPN, HostB1 (direttamente connesso al server ma non un client della VPN) e HostB2 (client della VPN). Prima di iniziare la configurazione abbiamo usato le funzioni di easy-rsa per generare le chiavi e i certificati necessari al funzionamento della vpn.
+Abbiamo tre componenti: il server openVPN, HostB1 (che è direttamente connesso al server ma non è un client della VPN) e HostB2 (client della VPN). Prima di iniziare la configurazione abbiamo usato le funzioni di easy-rsa per generare le chiavi e i certificati necessari al funzionamento della vpn.
 #### Server
-La configurazione del server è divisa in tre:
+La configurazione del server è divisa in tre file:
 * Configurazione delle interfacce (*[SetupOpenvpn-server.sh](./scripts/hosts/lan-B/SetupOpenvpn-server.sh "SetupOpenvpn-server.sh")*):
   1. Impostare le due interfacce:  
      ```
-       ip link set eth0 up
+        ip link set eth0 up
         ip link set eth1 up
         ip addr add 2.0.0.2/30 dev eth0
         ip addr add 192.168.17.1/24 dev eth1
@@ -457,24 +460,24 @@ La configurazione del server è divisa in tre:
         server 192.168.100.0 255.255.255.0
      ```
     4. Impostare la route da inviare al client:
-    ```
-     push "route 192.168.17.0 255.255.255.0"
      ```
-    6. Impostare al server la route verso il client. Questo funziona insieme all'impostazione di una iroute, che si trova sul file client01 all'interno della directory ccd:
+        push "route 192.168.17.0 255.255.255.0"
+     ```
+    5. Impostare al server la route verso il client. Questo funziona insieme all'impostazione di una iroute, che si trova sul file client01 all'interno della directory ccd:
      ```
         route 192.168.16.0 255.255.255.0
         
         iroute 192.168.16.0 255.255.255.0
      ```    
-    7. Impostare la directory ccd come directory per la configurazione del client:
+    6. Impostare la directory ccd come directory per la configurazione del client:
      ```
         client-config-dir ccd
      ```    
-    5. Impostare la frequenza del keepalive:
+    7. Impostare la frequenza del keepalive:
     ```
         keepalive 10 120
      ```    
-    6. Impostare il tipo di cifratura:
+    8. Impostare il tipo di cifratura:
     ```
         cipher AES-256-CBC
      ```        
@@ -486,14 +489,14 @@ La configurazione del server è divisa in tre:
 
      
 #### Client
-* Configurazione delle interfacce, non presentata dato che le interfacce degli host sono molto semplici (*[SetupHostB2.sh](./scripts/hosts/lan-B/SetupHostB2.sh "SetupHostB2.sh")*)
+* Configurazione delle interfacce, non presentata dato che le interfacce degli host sono molto semplici (*[SetupHostB2.sh](./scripts/hosts/lan-B/SetupHostB2.sh "SetupHostB2.sh")*).
 * Configurazione della vpn (*[client01.ovpn](./scripts/conf/client01.ovpn "client01.ovpn")*):
     1. Impostare il protocollo e l'interfaccia da usare:
     ```
         dev tun
         proto udp
      ```        
-    2. Dichiarare l'ip e la porta del server e far si che siano possibili infiniti tentativi di connessione:
+    2. Dichiarare l'ip e la porta del server e far sì che siano possibili infiniti tentativi di connessione:
      ```
         remote 2.0.0.2 1194
         resolv-retry infinite
@@ -510,7 +513,7 @@ La configurazione del server è divisa in tre:
         cipher AES-256-CBC
      ```  
 #### HostB1
-Per il funzionamento è necessario soltanto configurare le interfacce, la configurazione può essere trovata nel file [SetupHostB1.sh](./scripts/hosts/lan-B/SetupHostB1.sh "SetupHostB1.sh") 
+Per il funzionamento è necessario soltanto configurare le interfacce; la configurazione può essere trovata nel file [SetupHostB1.sh](./scripts/hosts/lan-B/SetupHostB1.sh "SetupHostB1.sh"). 
 
 ## Snapshot
 Per andare a fare il restore degli snapshot degli AV, ci siamo basati sulla documentazione di gns3, in cui viene dichiarato che i container non hanno persistenza a meno che questa non sia esplicitamente stabilita. Abbiamo quindi pensato che fare lo stop e start dei container potesse essere un buon modo per implementare gli snapshot. In realtà, ci siamo resi conto che GNS3 ricrea un nuovo container se il progetto viene chiuso e poi riaperto, ma non se il container viene spento e riacceso. Si potrebbe teoricamente andare a distruggere il container, ricrearlo a partire dal template, che corrisponde allo snapshot, e riavviarlo. Non abbiamo potuto testare questa strategia dato che, anche se sicuramente esiste, non è presente un'API di rimozione sulla documentazione di GNS3. Una strategia del genere richiede anche di processare automaticamente i json usati come risposta alle API, dato che le API di start, lik e stop di un nodo si basano sul node-id, che cambia ogni volta che il nodo viene rimosso e ricreato, quindi non può essere impostato staticamente. Va anche fatto notare che tutte queste operazioni è possibile farle fare direttamente al central-node nel momento in cui riceve i report: GNS3 può essere manovrato tramite richieste http GET o POST al server che lo ospita, nel nostro caso localhost sulla porta 3080. Il central node è collegato alla macchina host per accedere a Internet e, con l'IP fornito da VirtualBox per l'instradamento dei messaggi tra host e guest, possiamo inviare le richieste http al server GNS3 a partire dal central node.
