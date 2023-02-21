@@ -146,26 +146,25 @@ I tre router PE hanno configurazioni molto simili tra loro, quindi ne verrà ana
     ```
  PE3 è l'unico provider edge che presenta delle particolarità: 
  * Nell'interfaccia esposta verso la LanB e il client OpenVPN è stato attivato il natting:
- ```
+    ```
     interface GigabitEthernet3/0
     ip address 192.168.16.1 255.255.255.0
     ip nat inside
     no shutdown
-```
+    ```
 * Ci siamo assicurati che i collegamenti delle altre interfacce non subissero effetti dal nat (il seguente comando è stato aggiunto a tutte le altre interfacce):
-```
-ip nat outside
-```
+    ```
+    ip nat outside
+    ```
 * Abbiamo permesso l'ingresso nell'interfaccia con il nat solo dei pacchetti provenienti dalla vpn:
-```
+    ```
     access-list 101 permit ip 192.168.16.0 0.0.0.255 any
     ip nat inside source list 101 interface Loopback0 overload
-```
+    ```
 In più, dato che PE3 è il router collegato all'hub, deve mandare tutti i pacchetti della vpn verso il proprio CE:
-```
-ip route vrf vpnA 10.0.0.0 255.0.0.0 100.2.13.2
-
-```
+    ```
+    ip route vrf vpnA 10.0.0.0 255.0.0.0 100.2.13.2
+    ```
 
     
 ### LAN-A1
@@ -349,10 +348,10 @@ Tranne che per l'effettivo comando di analisi, specifico per i diversi antivirus
     nc -q 10 10.23.1.2 50001 < log1.log
 ```
 
-## LAN-A3
+### LAN-A3
 Questa LAN è costituita dal CE e dal central node. Il central node è accessibile dalla rete esterna, ed espone un sito web tramite il quale è possibile caricare file. Ogni volta che riceve un file, questo viene inviato verso gli AV. Il central-node aspetta una risposta e la mostra all'utente connesso.
 
-### CE-A3
+#### CE-A3
 La connessione all'AS di CE-A3 è molto simili a quella di CE-A1 quindi non verrà presentata, può essere trovata sul file *[SetupCE-A3.sh](./scripts/client-edges/SetupCE-A3.sh "SetupCE-A3.sh")*  
  
  ### Central-node
