@@ -35,8 +35,8 @@ Nella rete abbiamo due AS, con AS200 customer di AS100. L'AS100 connette i tre s
 
 ## AS100
 ### Configurazione dei router
-I router implementano BGP come protocollo per la comunicazione con il resto della rete, OSPF per la comunicazione interna, MPLS con LDP che fornisce la base per l'instradamento tra diversi siti della VPN.
-Abbiamo due tipi di router, LSR, nella parte centrale dell'AS, e Provider Edges. 
+I router implementano BGP come protocollo per la comunicazione con il resto della rete, OSPF per la comunicazione interna e MPLS con LDP che fornisce la base per l'instradamento tra diversi siti della VPN.
+Abbiamo due tipi di router: LSR (nella parte centrale dell'AS) e Provider Edges.
 #### LSR
 La configurazione dell'LSR è la seguente:   
 *[SetupLSR.cfg](./scripts/routers/lsr/SetupLSR.cfg "SetupLSR.cfg")*
@@ -79,7 +79,7 @@ I tre router PE hanno configurazioni molto simili tra loro, quindi ne verrà ana
     interface Loopback0                     
     ip address 1.255.0.2 255.255.255.255
     ```
-* Setup della vpn con rd 100:0. La vpn ha una topologia con un hub e due spoke, il PE collegato all'hub ha route-target 100:1 e quelli collegati agli spoke route-target 100:2. PE3 è collegato al nostro hub, mentre PE1 e PE2 sono collegati agli spoke:
+* Setup della vpn con rd 100:0. La vpn ha una topologia con un hub e due spoke. Il PE collegato all'hub ha route-target 100:1, mentre quelli collegati agli spoke hanno route-target 100:2. PE3 è collegato al nostro hub, mentre PE1 e PE2 sono collegati agli spoke:
     ```
     ip vrf vpnA
     rd 100:0
@@ -144,8 +144,8 @@ I tre router PE hanno configurazioni molto simili tra loro, quindi ne verrà ana
     ```
     ip route 1.0.0.0 255.0.0.0 Null0
     ```
- PE3 è l'unico provider edge che presenta delle particolarità, in particolare: 
- * Nell'interfaccia che si interfaccia verso la LanB e il client OpenVPN è stato attivato il natting:
+ PE3 è l'unico provider edge che presenta delle particolarità: 
+ * Nell'interfaccia esposta verso la LanB e il client OpenVPN è stato attivato il natting:
  ```
     interface GigabitEthernet3/0
     ip address 192.168.16.1 255.255.255.0
@@ -208,17 +208,17 @@ Configurazione del firewall:
     ```
     iptables -t nat -A POSTROUTING -o $AS -j MASQUERADE
     ```
-* Permette il traffico ICMP o ssh in ingresso al router se proveniente dalla LAN:
+* Permettere il traffico ICMP o ssh in ingresso al router se proveniente dalla LAN:
     ```
     iptables -A INPUT -i $LAN -p tcp --dport 22 -j ACCEPT
     iptables -A INPUT -i $LAN -p icmp -j ACCEPT
     ```
-* Permette il traffico in ingresso al router o alla LAN se proveniente da connessioni già stabilite:
+* Permettere il traffico in ingresso al router o alla LAN se proveniente da connessioni già stabilite:
     ```
     iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
     iptables -A FORWARD -m state --state ESTABLISHED -j ACCEPT
     ```
-* Permette il traffico http dall'esterno verso la LAN con port forwarding:
+* Permettere il traffico http dall'esterno verso la LAN con port forwarding:
     ```
         iptables -A INPUT -i $AS -p tcp --dport 80 -j ACCEPT
         iptables -A INPUT -i $AS -p tcp --dport 8080 -j ACCEPT
@@ -257,7 +257,7 @@ Configurazione del firewall:
      ```
         macsec.parent enp0s8 \
     ```
-* Creare una connessione in modo preshared key e impostare le chiavi:
+* Creare una connessione con la preshared key e impostare le chiavi:
      ```
         macsec.mode psk \
         macsec.mka-cak $MKA_CAK \
@@ -275,9 +275,9 @@ Configurazione del firewall:
     ```
  
  ### LAN-A2
- In questa sottorete abbiamo un Client Edge e tre host contenenti tre antivirus. Quando questa sottorete riceve dei file, gli antivirus devono attivarsi per analizzarli e fornire un report. Il CE deve anche fornire un firewall per evitare che i virus analizzati possano infettare altre componenti della rete.
+ In questa sottorete abbiamo un Client Edge e tre host contenenti tre antivirus. Quando questa sottorete riceve dei file, gli antivirus devono attivarsi per analizzarli e fornire un report. Il CE deve anche fornire un firewall per evitare che i virus analizzati infettino altre componenti della rete.
  #### CE-A2
- La connessione all'AS di CE-A2 è molto simili a quella di CE-A1 quindi non verrà presentata, può essere trovata sul file *[SetupCE-A2.sh](./scripts/client-edges/SetupCE-A2.sh "SetupCE-A2.sh")*  
+ La connessione all'AS di CE-A2 è molto simile a quella di CE-A1, per cui non verrà presentata; può essere trovata sul file *[SetupCE-A2.sh](./scripts/client-edges/SetupCE-A2.sh "SetupCE-A2.sh")*.
  Configurazione del firewall:  
  *[FirewallCE-A2.sh](./scripts/client-edges/FirewallCE-A2.sh "FirewallCE-A2.sh")*
  * Flush della configurazione precedente:
@@ -297,11 +297,11 @@ Configurazione del firewall:
     iptables -A FORWARD -s 10.123.0.0/16 -d 10.23.1.0/24 -j ACCEPT
     ```
  * Permettere tutto il traffico ICMP:
- ```
- iptables -A INPUT -p icmp -j ACCEPT
- iptables -A FORWARD -p icmp -j ACCEPT
- iptables -A OUTPUT -p icmp -j ACCEPT
- ```
+    ```
+    iptables -A INPUT -p icmp -j ACCEPT
+    iptables -A FORWARD -p icmp -j ACCEPT
+    iptables -A OUTPUT -p icmp -j ACCEPT
+    ```
  * Permettere il traffico di CE-A1 e CE-A3, che passa attraverso questo router dato che è un hub in vpnA:
     ```
     iptables -A FORWARD -s 10.23.1.0/24 -d 10.23.0.0/24 -j ACCEPT
